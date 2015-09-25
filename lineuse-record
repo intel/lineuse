@@ -1,0 +1,2 @@
+#!/bin/bash
+perf record -e instructions -c 2000003 -j u $@
