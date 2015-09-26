@@ -15,6 +15,7 @@ use Perf::Trace::Util;
 use bigint qw(hex);
 use Spreadsheet::WriteExcel;
 use File::Temp qw(tempfile);
+use integer;
 
 my %linehash;
 my %branchhash;
@@ -30,7 +31,9 @@ sub trace_end
     if (!$exec_name) {
         $exec_name = $ENV{'LINEUSE_EXEC_NAME'};
     }
-    foreach my $line (keys %linehash) {
+    my @branchhash_keys = sort { $a <=> $b } keys %branchhash;
+
+    foreach my $line (sort { $a <=> $b } keys %linehash) {
         my @color=();
         for(my $i=0; $i<64; $i++) {
             $color[$i]=0;
@@ -46,6 +49,19 @@ sub trace_end
             # Color the array with all ranges you found, takes care of overlap
             for(my $j=$start; $j<=$end; $j++) {
                 $color[$j] = 1;
+            }
+
+            # count up branch instructions (fallthrough and taken)
+            for (my $k=0; $k < @branchhash_keys; $k++) {
+                my $address = $branchhash_keys[$k];
+                if ($address < $line) {
+                    splice @branchhash_keys, $k, 1;
+                    $k--;
+                } elsif ($address >= $from && $address <= $upto) {
+                    $branchhash{$address}{"total"} += $linehash{$line}{$range};
+                } elsif ($address > ($line + 0x3f)) {
+                    last;
+                }
             }
         }
         # Count the number of 1's in the array
@@ -111,11 +127,13 @@ sub process_event
             push (@from,$from);
             push (@to,$to);
 
-            # check for the mispredicted branch bit
-            if ($flags & 1) {
+            # Check for the mispredicted branch bit. Don't use the
+            # last entry as it will not be part of any execution
+            # range. (We don't want to count more mispredicts than
+            # total branches counted.)
+            if (($i != 15) && ($flags & 1)) {
                 $branchhash{$from}{"count"}++;
             }
-            $branchhash{$from}{"total"}++;
         }
 
         # Iterate through all the TO:FROM in reverse
@@ -158,8 +176,6 @@ sub process_event
                 }
                 $linehash{$line}{"$entry->$egress"}++;
                 $linehash{$line}{"count"}++;
-                ### Iterate through branchhash to see if this range includes any of them
-                ### Sort them to make this a little quicker
             }
         }
     }
@@ -192,7 +208,7 @@ sub printresults {
     my $size = (keys %linehash) + 1;
     my $formula = $usesheet->store_formula(
         "=1*AND((D2<=32),(E2>0.001*SUM(E\$1:E\$$size)))");
-    my @linehash_keys = sort keys %linehash;
+    my @linehash_keys = sort { $a <=> $b } keys %linehash;
     my $addrs_file = new File::Temp(UNLINK => 1);
     foreach my $line (@linehash_keys) {
         printf $addrs_file "0x%016X\n", $line;
@@ -250,7 +266,7 @@ sub printresults {
     $usesheet->write_row($row++, 0, \@useheader);
     print F "${header}\n";
     $formula = $usesheet->store_formula("=D2/E2");
-    my @branchhash_keys = sort keys %branchhash;
+    my @branchhash_keys = sort { $a <=> $b } keys %branchhash;
     $addrs_file = new File::Temp(UNLINK => 1);
     foreach my $line (@branchhash_keys) {
         printf $addrs_file "0x%016X\n", $line;
