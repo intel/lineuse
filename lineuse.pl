@@ -131,7 +131,7 @@ sub process_event
             # last entry as it will not be part of any execution
             # range. (We don't want to count more mispredicts than
             # total branches counted.)
-            if (($i != 15) && ($flags & 1)) {
+            if (($i != ($lbr_number - 1)) && ($flags & 1)) {
                 $branchhash{$from}{"count"}++;
             }
         }
