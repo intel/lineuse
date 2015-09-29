@@ -233,7 +233,9 @@ sub printresults {
         my $source_line;
         if ($symbolfile_available) {
             $function_name = <SF>;
+            $function_name =~ s/\s+$//;
             $source_line = <SF>;
+            $source_line =~ s/\s+$//;
         } else {
             $function_name = "??";
             $source_line = "??:?";
@@ -286,7 +288,9 @@ sub printresults {
         my $source_line;
         if ($symbolfile_available) {
             $function_name = <SF>;
+            $function_name =~ s/\s+$//;
             $source_line = <SF>;
+            $source_line =~ s/\s+$//;
         } else {
             $function_name = "??";
             $source_line = "??:?";
@@ -294,7 +298,7 @@ sub printresults {
         my $hexaddress = sprintf("0x%016X", $address);
         push (@values, "$hexaddress", "$function_name", "$source_line", "$misses",
             "$branchhash{$address}{\"total\"}");
-        print F "$hexaddress\t$misses\t$branchhash{$address}{\"total\"}\n";
+        print F "$hexaddress\t$function_name\t$source_line\t$misses\t$branchhash{$address}{\"total\"}\n";
         $usesheet->write_row($row, 0, \@values);
         my $one_based_row = $row + 1;
         $usesheet->repeat_formula($row, 5, $formula, $format_text, 'D2', 'D'.($one_based_row),
