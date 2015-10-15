@@ -38,7 +38,7 @@ sub trace_end
         for(my $i=0; $i<64; $i++) {
             $color[$i]=0;
         }
-        foreach my $range (keys $linehash{$line}) {
+        foreach my $range (keys %{$linehash{$line}}) {
             if ($range eq "count") {
                 next;
             }
