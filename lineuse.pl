@@ -7,6 +7,8 @@
 # be retrieved using Perl functions of the form common_*($context).
 # See Context.pm for the list of available functions.
 
+# Based on code created by Harshad Sane, DCST/STO/SSG (4/12/2015)
+
 use lib "$ENV{'PERF_EXEC_PATH'}/scripts/perl/Perf-Trace-Util/lib";
 use lib "./Perf-Trace-Util/lib";
 use Perf::Trace::Core;
