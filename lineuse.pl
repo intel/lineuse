@@ -143,8 +143,6 @@ sub process_event
             # Calculate Basic Block length
             my $bbstart = $to[$i];
             my $bbend = $from[$i-1];
-            $bbstart = $to[$i];
-            $bbend = $from[$i-1];
 
             # The "from" in the LBR is the start of the branch instruction
             # Assume branch instruction to be an average of 3 bytes long
