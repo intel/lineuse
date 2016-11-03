@@ -323,7 +323,7 @@ sub printresults {
     $usesheet->write_row($row++, 0, \@values);
     $row++;
     @values=();
-    push (@values, "avg mispredict rate\:", "=AVERAGE(LBR_BranchMispredicts\!F:F)");
+    push (@values, "avg mispredict rate\:", "=SUM(LBR_BranchMispredicts\!D:D)/SUM(LBR_BranchMispredicts\!E:E)");
     $usesheet->write_row($row++, 0, \@values);
 
     $excel_file->close();
