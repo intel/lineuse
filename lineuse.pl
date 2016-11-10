@@ -192,10 +192,10 @@ sub printresults {
 
     my $text_file = "lineuse.csv";
     open(F, ">$text_file") || die "could not write to file $text_file\n";
-    my $usesheet = $excel_file->add_worksheet("LBR_Lineuse");
+    my $use_sheet = $excel_file->add_worksheet("LBR_Lineuse");
     # LBR sheet
-    $usesheet->set_row(0,16, $format_head);
-    $usesheet->set_column(0,10,22, $format_text);
+    $use_sheet->set_row(0,16, $format_head);
+    $use_sheet->set_column(0,10,22, $format_text);
     #$lbrsheet->set_column(2,2,15, $format_num1);
     ######################################################################
     # Dump to Excel sheet
@@ -203,11 +203,11 @@ sub printresults {
     my $row=0;
     my $header = "Cacheline\tFunction\tSource line\tBytesUsed\tHits\tPoor Use";
     my @useheader = split(/\t/,$header);
-    $usesheet->write_row($row++, 0, \@useheader);
+    $use_sheet->write_row($row++, 0, \@useheader);
     print F "${header}\n";
-    my $size = (keys %linehash) + 1;
-    my $formula = $usesheet->store_formula(
-        "=1*AND((D2<=32),(E2>0.001*SUM(E\$1:E\$$size)))");
+    my $use_size = (keys %linehash) + 1;
+    my $use_formula = $use_sheet->store_formula(
+        "=1*AND((D2<=32),(E2>0.001*SUM(E\$2:E\$$use_size)))");
     my @linehash_keys = sort { $a <=> $b } keys %linehash;
     my $addrs_file = new File::Temp(UNLINK => 1);
     foreach my $line (@linehash_keys) {
@@ -243,10 +243,10 @@ sub printresults {
         my $hexline = sprintf("0x%016X", $line);
         push (@values, "$hexline", "$function_name", "$source_line", "$linehash{$line}{\"use\"}",
             "$linehash{$line}{\"count\"}");
-        $usesheet->write_row($row, 0, \@values);
+        $use_sheet->write_row($row, 0, \@values);
         my $one_based_row = $row + 1;
-        $usesheet->repeat_formula($row, 5, $formula, $format_flag, 'D2', 'D'.($one_based_row),
-            'E2', 'E'.($one_based_row));
+        $use_sheet->repeat_formula($row, 5, $use_formula, $format_flag,
+	    'D2', 'D'.($one_based_row), 'E2', 'E'.($one_based_row));
         $row++;
         print F "$hexline\t$function_name\t$source_line\t$linehash{$line}{\"use\"}\t$linehash{$line}{\"count\"}\n";
     }
@@ -255,19 +255,23 @@ sub printresults {
 
     $text_file = "mispredicts.csv";
     open(F, ">$text_file") || die "could not write to file $text_file\n";
-    $usesheet = $excel_file->add_worksheet("LBR_BranchMispredicts");
+    my $branch_sheet = $excel_file->add_worksheet("LBR_BranchMispredicts");
     # Branch mispredict sheet
-    $usesheet->set_row(0,16, $format_head);
-    $usesheet->set_column(0,10,22, $format_text);
+    $branch_sheet->set_row(0,16, $format_head);
+    $branch_sheet->set_column(0,10,22, $format_text);
     ######################################################################
     # Dump to Excel sheet
     ######################################################################
     $row=0;
-    $header = "Address\tFunction\tSource line\tMispredictions\tTotal uses\tMisprediction rate";
+    $header = "Address\tFunction\tSource line\tMispredictions\tTotal uses\tMisprediction rate\tHigh Mispredict";
     @useheader = split(/\t/,$header);
-    $usesheet->write_row($row++, 0, \@useheader);
+    $branch_sheet->write_row($row++, 0, \@useheader);
     print F "${header}\n";
-    $formula = $usesheet->store_formula("=D2/E2");
+    my $rate_formula = $branch_sheet->store_formula("=D2/E2");
+    my $branch_size = (keys %branchhash) + 1;
+    my $summary_sheet = $excel_file->add_worksheet("Summary");
+    my $high_formula = $branch_sheet->store_formula(
+        "=1*AND((F2>1.5*Summary!\$B\$4),(E2>0.001*SUM(E\$2:E\$$branch_size)))");
     my @branchhash_keys = sort { $a <=> $b } keys %branchhash;
     $addrs_file = new File::Temp(UNLINK => 1);
     foreach my $line (@branchhash_keys) {
@@ -299,32 +303,33 @@ sub printresults {
         push (@values, "$hexaddress", "$function_name", "$source_line", "$misses",
             "$branchhash{$address}{\"total\"}");
         print F "$hexaddress\t$function_name\t$source_line\t$misses\t$branchhash{$address}{\"total\"}\n";
-        $usesheet->write_row($row, 0, \@values);
+        $branch_sheet->write_row($row, 0, \@values);
         my $one_based_row = $row + 1;
-        $usesheet->repeat_formula($row, 5, $formula, $format_text, 'D2', 'D'.($one_based_row),
-            'E2', 'E'.($one_based_row));
+        $branch_sheet->repeat_formula($row, 5, $rate_formula, $format_text,
+	    'D2', 'D'.($one_based_row), 'E2', 'E'.($one_based_row));
+        $branch_sheet->repeat_formula($row, 6, $high_formula, $format_flag,
+	    'F2', 'F'.($one_based_row), 'E2', 'E'.($one_based_row));
         $row++;
     }
     close(SF);
     close(F);
 
-    $usesheet = $excel_file->add_worksheet("Summary");
     # Summary data sheet
-    $usesheet->set_column(0,10,45, $format_text);
+    $summary_sheet->set_column(0,10,45, $format_text);
     ######################################################################
     # Dump to Excel sheet
     ######################################################################
     $row=0;
     my @values=();
     push (@values, "avg cache line use\:", "=AVERAGE(LBR_Lineuse\!D:D)/64");
-    $usesheet->write_row($row++, 0, \@values);
+    $summary_sheet->write_row($row++, 0, \@values);
     @values=();
     push (@values, "weighted avg cache line use\:", "=SUMPRODUCT(LBR_Lineuse\!D:D,LBR_Lineuse\!E:E)/SUM(LBR_Lineuse\!E:E)/64");
-    $usesheet->write_row($row++, 0, \@values);
+    $summary_sheet->write_row($row++, 0, \@values);
     $row++;
     @values=();
     push (@values, "avg mispredict rate\:", "=SUM(LBR_BranchMispredicts\!D:D)/SUM(LBR_BranchMispredicts\!E:E)");
-    $usesheet->write_row($row++, 0, \@values);
+    $summary_sheet->write_row($row++, 0, \@values);
 
     $excel_file->close();
 }
@@ -342,6 +347,7 @@ sub head_format {
     $format->set_size(11);
     return($format);
 }
+
 sub text_format {
     my $wkbk = shift;
     my $format;
@@ -354,6 +360,7 @@ sub text_format {
     $format->set_size(9);
     return($format);
 }
+
 sub percent_format {
     my $wkbk = shift;
     my $format;
@@ -367,6 +374,7 @@ sub percent_format {
     $format->set_num_format('[Blue]0.000%');
     return($format);
 }
+
 sub num_format {
     my $wkbk = shift;
     my $format;
@@ -380,6 +388,7 @@ sub num_format {
     $format->set_num_format('[Blue]0.000');
     return($format);
 }
+
 sub int_format {
     my $wkbk = shift;
     my $format;
@@ -393,6 +402,7 @@ sub int_format {
     $format->set_num_format('[Blue]0');
     return($format);
 }
+
 sub flag_format {
     my $wkbk = shift;
     my $format;
