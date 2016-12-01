@@ -40,6 +40,7 @@ and stand-alone mode. Installed mode is the preferred method.
 
 Initial setup (requires root):
 
+    mkdir -p /usr/libexec/perf-core/scripts/perl/bin
     cp lineuse-re* /usr/libexec/perf-core/scripts/perl/bin/
     cp lineuse.pl /usr/libexec/perf-core/scripts/perl/
 
